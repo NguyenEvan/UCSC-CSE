@@ -1,6 +1,4 @@
-# UCSC Undergraduate Work Collection
-
-This repository contains a collection of some of my undergraduate coursework completed at the University of California, Santa Cruz (UCSC) from 2023 to 2026, in order to obtain a Bachelor's Degree in Computer Science.
+CSE-150 Programming Assignment Repository
 
 ## Disclaimer 
 

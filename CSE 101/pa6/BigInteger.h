@@ -85,6 +85,19 @@ public:
    // Returns a BigInteger representing the product of this and N. 
    BigInteger mult(const BigInteger& N) const;
 
+   // div()
+   // Returns a BigInteger representing the integer division of this and N. 
+   BigInteger div(const BigInteger& N) const;
+
+   // mod()
+   // Returns a BigInteger representing the remainder of this divided by N.
+   BigInteger mod(const BigInteger& N) const;
+
+   // pow()
+   // Returns a BigInteger representing this to the power of N. 
+   // Pre: N >= 0 (negative exponents not supported)
+   BigInteger pow(const BigInteger& N) const;
+
 
    // Other Functions ---------------------------------------------------------
 
@@ -94,6 +107,14 @@ public:
    // will begin with a negative sign '-'. If this BigInteger is zero, the
    // returned string will consist of the character '0' only.
    std::string to_string();
+
+   // findQuotientDigit()
+   // Uses binary search to find the highest quotient digit q, where q * divisor <= remainder
+   friend long findQuotientDigit(const BigInteger& remainder, const BigInteger& divisor);
+
+   // abs()
+   // Returns the absolute value of this
+   friend BigInteger abs(const BigInteger& A);
 
 
    // Overriden Operators -----------------------------------------------------
@@ -145,6 +166,33 @@ public:
    // operator*=()
    // Overwrites A with the product A*B. 
    friend BigInteger operator*=( BigInteger& A, const BigInteger& B );
+
+   // operator/()
+   // Returns the quotient A/B. 
+   friend BigInteger operator/( const BigInteger& A, const BigInteger& B );
+
+   // operator/=()
+   // Overwrites A with the quotient A/B. 
+   friend BigInteger operator/=( BigInteger& A, const BigInteger& B );
+
+   // operator%()
+   // Returns the remainder A%B. 
+   friend BigInteger operator%( BigInteger& A, const BigInteger& B );
+
+   // operator%=()
+   // Overwrites A with the remainder A%B. 
+   friend BigInteger operator%=( BigInteger& A, const BigInteger& B );
+
+   // operator^()
+   // Returns A raised to the power of B.
+   friend BigInteger operator^( const BigInteger& A, const BigInteger& B );
+
+   // operator^=()
+   // Overwrites A with A raised to the power of B.
+   friend BigInteger operator^=( BigInteger& A, const BigInteger& B );
+
+   BigInteger& operator=(const BigInteger& N);
+
 
 };
 

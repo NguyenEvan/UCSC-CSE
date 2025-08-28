@@ -1,10 +1,3 @@
-/***
-* Evan Nguyen
-* evbnguye
-* 2024 Fall CSE101 PA6
-* BigInteger.cpp
-* C++ file for List ADT 
-***/ 
 //-----------------------------------------------------------------------------
 // BigInteger.cpp
 // Implementation file for BigInteger ADT
@@ -77,16 +70,17 @@ BigInteger::BigInteger(std::string s){
             throw std::invalid_argument("BigInteger: Constructor: non-numeric string");
         }
     }
-    int i = s.length() - POWER;
+    long i = static_cast<long>(s.length()) - POWER;
     digits.moveFront();
-    while (i >= 0){
-        long num = std::stol(s.substr(i, POWER));
+
+    while (i >= 0) {
+        long num = std::stol(s.substr(static_cast<size_t>(i), POWER));
         digits.insertBefore(num);
         i -= POWER;
     }
-    
-    if (i + POWER > 0){
-        long num = std::stol(s.substr(0, i+POWER));
+
+    if (i + POWER > 0) {
+        long num = std::stol(s.substr(0, static_cast<size_t>(i + POWER)));
         digits.insertBefore(num);
     }
 
@@ -173,14 +167,14 @@ void negateList(List& L){
     }
 }
 // normalizeList() 
-// Performs carries from right to left (least to most significant digits), 
+// Performs carries from left to right (least to most significant digits), 
 // then returns the sign of the resulting integer. 
-// Used by add(), sub() and mult(). 
+// Used by add(), sub().
 int normalizeList(List& L){
     int output = 1;
     L.moveFront();
     long elem;
-    int carry = 0;
+    long carry = 0;
     while (L.position() < L.length()){
         elem = L.moveNext();
         elem += carry;
@@ -239,6 +233,45 @@ void scalarMultList(List& L, ListElement m){
         L.setBefore(elem * m);
     }
 }
+
+// Alternative implementation using binary search for quotient digit
+// This can be more efficient for large numbers
+long findQuotientDigit(const BigInteger& remainder, const BigInteger& divisor) {
+    if (remainder < divisor) return 0;
+    
+    long low = 1, high = BASE - 1; // BASE is typically 10^9
+    long result = 0;
+    
+    while (low <= high) {
+        long mid = (low + high) / 2;
+        BigInteger product;
+        product.digits = divisor.digits;
+        scalarMultList(product.digits, mid);
+        normalizeList(product.digits);
+        
+        if (remainder >= product) {
+            result = mid;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    
+    return result;
+}
+
+// abs()
+// Returns the absolute value of this
+BigInteger abs(const BigInteger& A){
+    BigInteger out = A;
+    if (A.signum == 1) return out;
+    if (A.signum == -1){
+        out.negate();
+        return out;
+    }
+    return out;
+}       
+
 // BigInteger Arithmetic operations ----------------------------------------
 
 // add()
@@ -323,22 +356,19 @@ BigInteger BigInteger::mult(const BigInteger& N) const{
     BigInteger O1 = *this;
     O1.digits.moveFront();
     while (O.position() < O.length()){
+        // Reset O1 digits because we performed scalar multiplication in the previous iter.
         O1.digits = digits;
         elem = O.moveNext();
+        // Multiply by current digit
         scalarMultList(O1.digits, elem);
+        // Shift left by current position
         shiftList(O1.digits, p);
         p += 1;
-        // std::cout << O1 << "O1: \n";
-        // std::cout << O1.digits << "O1 digits: \n";
+        // Add to result
         output = output.add(O1);
-        // std::cout << output << "MIDDLEoutput: \n";
-        // std::cout << output.digits << "MIDDLEoutput digits: \n";
-        // normalizeList(output.digits);
-        // std::cout << output << "output: \n";
-        // std::cout << output.digits << "output digits: \n";
     }
-    // std::cout << output.digits << "\n";
-    // std::cout << output << "\n";
+
+    // Determine sign of result
     if ((signum == -1 && N.signum == -1) || (signum == 1 && N.signum == 1)){
         output.signum = 1;
     }
@@ -348,11 +378,110 @@ BigInteger BigInteger::mult(const BigInteger& N) const{
     else{
         output.signum = 0;
     }
-
     
     return output;
 }
 
+// div()
+// Returns a BigInteger representing the integer division of this and N. 
+BigInteger BigInteger::div(const BigInteger& N) const {
+    if (N.signum == 0) {
+        throw std::invalid_argument("Division by zero");
+    }
+    
+    if (signum == 0) {
+        return BigInteger();
+    }   
+    
+    BigInteger dividend = *this;
+    dividend.signum = 1;
+    BigInteger divisor = N;
+    divisor.signum = 1;
+    
+    BigInteger quotient;
+    BigInteger remainder;
+    remainder.digits.moveFront();
+    remainder.digits.insertAfter(0);
+    
+    List dividendDigits = dividend.digits;
+    dividendDigits.moveBack();
+    
+    while (dividendDigits.position() > 0) {
+        long nextDigit = dividendDigits.movePrev();
+        
+        if (remainder.signum != 0) {
+            remainder.digits.moveFront();
+            remainder.digits.insertAfter(0);
+        }
+        remainder.digits.moveFront();
+        remainder.digits.setAfter(nextDigit);
+        remainder.signum = 1;
+        normalizeList(remainder.digits);
+        
+        // Use binary search to find quotient digit
+        long quotientDigit = findQuotientDigit(remainder, divisor);
+        
+        if (quotientDigit > 0) {
+            BigInteger product;
+            product.digits = divisor.digits;
+            scalarMultList(product.digits, quotientDigit);
+            normalizeList(product.digits);
+            remainder = remainder - product;
+        }
+        
+        quotient.digits.moveFront();
+        quotient.digits.insertAfter(quotientDigit);
+    }
+    
+    normalizeList(quotient.digits);
+
+    // Determine sign of result
+    if ((signum == -1 && N.signum == -1) || (signum == 1 && N.signum == 1)){
+        quotient.signum = 1;
+    }
+    else if ((signum == 1 && N.signum == -1) || (signum == -1 && N.signum == 1)){
+        quotient.signum = -1;
+    }
+    else{
+        quotient.signum = 0;
+    }
+
+    if (quotient == 0) quotient.signum = 0;
+    
+    return quotient;
+}
+
+// mod()
+// Returns a BigInteger representing the remainder of this divided by N.
+BigInteger BigInteger::mod(const BigInteger& N) const {
+    BigInteger dividend = *this;
+    BigInteger divisor = N;
+    BigInteger remainder = dividend - (dividend / divisor) * divisor;
+    if (remainder.sign() < 0) remainder = remainder + abs(divisor);
+    return remainder;
+}
+
+// pow()
+// Returns a BigInteger representing this to the power of N. This function only supports positive exponents.
+BigInteger BigInteger::pow(const BigInteger& N) const {
+    if (N.signum == -1) {
+        throw std::invalid_argument("Negative exponent");
+    }
+    BigInteger out(1);
+    BigInteger base = *this;
+    BigInteger exp = N;
+    // Use exponentiation by squaring for efficiency
+    while (exp > BigInteger(0)){
+        // If exponent is odd, multiply result by current base
+        if (exp % BigInteger(2) == BigInteger(1)){
+            out *= base; 
+        }
+        // Square the base and halve the exponent
+        base *= base;
+        exp /= BigInteger(2);
+    }
+    return out;
+}
 
 // Other Functions ---------------------------------------------------------
 
@@ -480,4 +609,51 @@ BigInteger operator*( const BigInteger& A, const BigInteger& B ){
 BigInteger operator*=( BigInteger& A, const BigInteger& B ){
     A = A.mult(B);
     return A;
+}
+
+// operator/()
+// Returns the quotient A/B. 
+BigInteger operator/( const BigInteger& A, const BigInteger& B ){
+    return A.div(B);
+}
+
+// operator/=()
+// Overwrites A with the quotient A/B. 
+BigInteger operator/=( BigInteger& A, const BigInteger& B ){
+    A = A.div(B);
+    return A;
+}
+
+// operator%()
+// Returns the remainder A%B. 
+BigInteger operator%( BigInteger& A, const BigInteger& B ){
+    return A.mod(B);
+}
+
+// operator%=()
+// Overwrites A with the remainder A%B. 
+BigInteger operator%=( BigInteger& A, const BigInteger& B ){
+    A = A.mod(B);
+    return A;
+}
+
+// operator^()
+// Returns A raised to the power of B.
+BigInteger operator^( const BigInteger& A, const BigInteger& B ){
+    return A.pow(B);
+}
+
+// operator^=()
+// Overwrites A with A raised to the power of B.
+BigInteger operator^=( BigInteger& A, const BigInteger& B ){
+    A = A.pow(B);
+    return A;
+}
+
+BigInteger& BigInteger::operator=(const BigInteger& N) {
+    if (this != &N) {
+        this->digits = N.digits;
+        this->signum = N.signum;
+    }
+    return *this;
 }
