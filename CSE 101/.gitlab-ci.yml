@@ -1,2 +1,0 @@
-include:
-  remote: ${TESTING_BASE_URL}/grading-ci.yml
